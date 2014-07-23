@@ -143,9 +143,9 @@ static int lookup_slow_entry(struct kretprobe_instance *ri, struct pt_regs *regs
     struct dentry *parent;
 	struct inode *pinode;
 
-	if (!nd) return;
+	if (!nd) return ret;
 	parent = nd->path.dentry;
-    if (!parent) return;
+    if (!parent) return ret;
 	pinode= parent->d_inode;
 
     if (pinode->i_sb->s_magic == PROC_SUPER_MAGIC
@@ -164,7 +164,7 @@ static int lookup_slow_entry(struct kretprobe_instance *ri, struct pt_regs *regs
 /* The entry hook ensures that the return hook is only called for
    accesses to /proc */
 
-static int print_once = 0;
+/*static int print_once = 0;*/
 
 static int lookup_slow_ret(struct kretprobe_instance *ri, struct pt_regs *regs)
 {
@@ -201,7 +201,7 @@ static struct file *do_last_probe(struct nameidata *nd, struct path *path, struc
                          struct open_flags *op, const char *pathname) {
     struct dentry *parent = nd->path.dentry;
     struct inode *pinode = parent->d_inode;
-    struct qstr *q = &nd->last;
+    /*struct qstr *q = &nd->last;*/
 
     
     if (pinode->i_sb->s_magic == PROC_SUPER_MAGIC && current->nsproxy->mnt_ns!=init_task.nsproxy->mnt_ns) {
@@ -310,11 +310,12 @@ static void add_entry(char *pathname) {
 
 static void __exit procprotect_exit(void)
 {
+    struct acl_entry *entry;
+    int i;
+
     unregister_kretprobe(&fast_probe);
     unregister_kretprobe(&slow_probe);
     unregister_jprobe(&dolast_probe);    
-    struct acl_entry *entry;
-    int i;
 
     for (i=0;i<HASH_SIZE;i++) {
         hlist_for_each_entry_rcu(entry, 
@@ -352,7 +353,7 @@ int procfile_write(struct file *file, const char *buffer, unsigned long count, v
 		if (init_probes()==-1)
 			printk(KERN_CRIT "Could not install procprotect probes. Reload module to retry.");
 	}
-    printk(KERN_CRIT "Length of buffer=%d",strlen(pathname));
+    printk(KERN_CRIT "Length of buffer=%d",(int)strlen(pathname));
     return count;
 }
 
@@ -364,7 +365,7 @@ static const struct file_operations procprotect_fops = {
 
 static int __init procprotect_init(void)
 {
-    int ret;
+    int ret = 0;
     int i;
 
     printk("Procprotect: starting procprotect version %s with ACLs at path %s.\n",
