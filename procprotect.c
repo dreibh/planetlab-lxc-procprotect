@@ -169,6 +169,7 @@ static int lookup_slow_entry(struct kretprobe_instance *ri, struct pt_regs *regs
 static int lookup_slow_ret(struct kretprobe_instance *ri, struct pt_regs *regs)
 {
     struct procprotect_ctx *ctx;
+    struct inode *inode;
     int ret;
 
     if (!ri || !ri->data) {return 0;}
@@ -181,7 +182,7 @@ static int lookup_slow_ret(struct kretprobe_instance *ri, struct pt_regs *regs)
         if (!p || !p->dentry || !p->dentry->d_inode /* This last check was responsible for the f18 bug*/) {
             return 0;
         }
-        struct inode *inode = p->dentry->d_inode;
+        inode = p->dentry->d_inode;
         if (!run_acl(inode->i_ino)) {
             regs->ax = -EPERM;
         }
