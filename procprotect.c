@@ -105,7 +105,7 @@ static int lookup_fast_entry(struct kretprobe_instance *ri, struct pt_regs *regs
     if (pinode->i_sb->s_magic == PROC_SUPER_MAGIC
             && current->nsproxy->mnt_ns!=init_task.nsproxy->mnt_ns) {	
         ctx = (struct procprotect_ctx *) ri->data;
-        ctx->inode = regs->dx;
+        ctx->inode = (struct inode **)regs->dx;
         ctx->flags = nd->flags;
         ret = 0;
     }
@@ -212,22 +212,23 @@ static struct file *do_last_probe(struct nameidata *nd, struct path *path, struc
         op->open_flag &= ~O_CREAT;
     }
     jprobe_return();
+    return file;
 }
 
 static struct jprobe dolast_probe = {
-	.entry = (kprobe_opcode_t *) do_last_probe
+	.entry = do_last_probe
 };
 
 static struct kretprobe fast_probe = {
-    .entry_handler = (kprobe_opcode_t *) lookup_fast_entry,
-    .handler = (kprobe_opcode_t *) lookup_fast_ret,
+    .entry_handler = lookup_fast_entry,
+    .handler = lookup_fast_ret,
     .maxactive = 20,
     .data_size = sizeof(struct procprotect_ctx)
 };
 
 static struct kretprobe slow_probe = {
-    .entry_handler = (kprobe_opcode_t *) lookup_slow_entry,
-    .handler = (kprobe_opcode_t *) lookup_slow_ret,
+    .entry_handler = lookup_slow_entry,
+    .handler = lookup_slow_ret,
     .maxactive = 20,
     .data_size = sizeof(struct procprotect_ctx)
 };
@@ -332,7 +333,7 @@ static void __exit procprotect_exit(void)
 
 
 
-int procfile_write(struct file *file, const char *buffer, unsigned long count, void *data) {		
+ssize_t procfile_write(struct file *file, const char *buffer, size_t count, loff_t *data) {		
     char pathname[PATH_MAX];
 
     if (current->nsproxy->mnt_ns!=init_task.nsproxy->mnt_ns)
